@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Web Audio Tests</title>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+        <script type="text/javascript" src="src/audio.js"></script>
+        <script type="text/javascript" src="src/main.js"></script>
+    </head>
+    <body>
+        <input id="inp_file" type="file" name="files[]"><br>
+        <button id="btn_play">Play Sound</button>
+        <button id="btn_stop">Stop Sound</button><br>
+        Gain: <input id="inp_gain" type="range" min="0" max="100" value="10"><br>
+        Use Noise Reducer: <input id="inp_useReducer" type="checkbox" checked><br>
+        Noise Threshold: <input id="inp_threshold" type="range" min="0" max="200" value="10"><br>
+        Output Level: <span id="level"></span><br>
+    </body>
+</html>
