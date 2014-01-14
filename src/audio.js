@@ -1,6 +1,8 @@
 /**
- * Web Audio Tests
- * Simple library for convenience
+ * Noise Reduction Tests
+ * Simple audio library for convenience
+ *
+ * Eric Schmidt 2014
  */
 
 (function(window) {
@@ -17,7 +19,7 @@
         } catch(e) {
             console.warn("Audio API not supported");
         }
-    }
+    };
     
     // Creates a buffer from a file, callback is a function of the newly created buffer
     audio.bufferFromFile = function(file, callback) {
@@ -27,7 +29,7 @@
                 console.log("Sound loaded: "+file.name);
                 callback(buffer);
             });
-        }
+        };
         reader.readAsArrayBuffer(file);
     };
     
@@ -139,7 +141,7 @@
         _this.gate = new audio.NoiseGate(threshold, target);
         // Create and configure the parametric EQ
         var _eq = new audio.ParametricEQ();
-        _eq.setBandFrequencies([200,164,191,677,1014,2858,6240,10000]);
+        _eq.setBandFrequencies([200,200,191,677,1014,2858,6240,10000]);
         _eq.setBandTypes(["highpass","peaking","notch","notch","notch","notch","lowpass","peaking"]);
         // Create a post-gain node
         var _gain = audio.context.createGain();
@@ -150,6 +152,62 @@
         _this.input = _eq.input;
         // Set the output of this module to be the gain
         _this.output = _gain;
+        
+        // An internal boolean to store whether the module is bypassed or not
+        var _bypassed = false;
+        // Determines whether the module is active or not - argument is a boolean
+        _this.bypass = function(isBypassed) {
+            if(isBypassed && !_bypassed) {
+                _this.input.disconnect(0);
+                _this.input.connect(_this.output);
+                _bypassed = true;
+            } else if(!isBypassed && _bypassed) {
+                _this.input.disconnect(0);
+                _this.input.connect(_eq.bands[0]);
+                _bypassed = false;
+            }
+        };
+    };
+    
+    // A simple spectrum analyser (constructor takes canvas element on which to draw)
+    audio.SpectrumAnalyser = function(canvas) {
+        var _this = this;
+        // Store the canvas to draw on (and its dimensions)
+        var _canvas = canvas;
+        var _width = _canvas.width;
+        var _height = _canvas.height;
+        // Create an analyser as the node
+        _this.node = audio.context.createAnalyser();
+        _this.node.fftSize = 2048;
+        
+        // Get frequency domain data and draw it on the canvas
+        var _draw = function() {
+            // Get the frequency domain data
+            var freqData = new Uint8Array(_this.node.frequencyBinCount);
+            _this.node.getByteFrequencyData(freqData);
+            // Fill the canvas with black
+            var ctx = _canvas.getContext("2d");
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0,0,_width,_height);
+            // Using 200 discrete frequencies, calculate bar width
+            var barWidth = _width/200;
+            ctx.fillStyle = "#007700";
+            for(var i=0; i<200; i++) {
+                // Calculate the ith frequency on an exponential scale
+                var freq = Math.pow(4, i/20);
+                // Find which frequency bin it is stored in
+                var bin = Math.round(freq/audio.context.sampleRate*_this.node.fftSize);
+                // Get the level and scale it to fit in the canvas
+                var level = freqData[bin]*_height/256;
+                // Calculate x and y position of the rectangle to draw and draw it
+                var x = i*barWidth;
+                var y = _height - level;
+                ctx.fillRect(x,y,barWidth,level);
+            }
+        };
+        
+        // Set up the interval at which to draw the spectrum
+        var _int = setInterval(_draw, 50);
     };
     
 }(window));
