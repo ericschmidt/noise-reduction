@@ -50,16 +50,23 @@
     
     // Measures & displays the level of the audio as well as the average level & deviation
     function getLevel() {
+        // The current level
         var _level = meter.getLevel();
+        // Calculate the average level
         level = (level*counter+_level)/(counter+1);
+        // The current deviation
         var _deviation = Math.abs(_level-level);
+        // Calculate the average deviation
         deviation = (deviation*counter+_deviation)/(counter+1);
         counter++;
+        // Display the values
         document.getElementById("level").innerHTML = _level;
         document.getElementById("avglevel").innerHTML = level;
         document.getElementById("deviation").innerHTML = _deviation;
         document.getElementById("avgdev").innerHTML = deviation;
         document.getElementById("devperlev").innerHTML = deviation/level;
+        // Intelligently set the threshold of the noise gate
+        reducer.gate.threshold = level-1.5*deviation;
         if(playing) requestAnimationFrame(getLevel);
     }
     
@@ -73,9 +80,16 @@
     // EVENT HANDLERS
     // Handles loading a file
     function onFileChosen(e) {
+        // Disable the playback buttons during loading
+        document.getElementById("btn_play").disabled = true;
+        document.getElementById("btn_stop").disabled = true;
         // Set the source buffer to be that of the chosen file
         var file = e.target.files[0];
-        audio.bufferFromFile(file, function(buffer) { sourceBuffer = buffer });
+        audio.bufferFromFile(file, function(buffer) {
+            sourceBuffer = buffer;
+            document.getElementById("btn_play").disabled = false;
+            document.getElementById("btn_stop").disabled = false;
+        });
     }
     
     // Changes the gain when the slider is moved
@@ -106,10 +120,10 @@
         analyser1 = new audio.SpectrumAnalyser(document.getElementById("canvas_before"));
         analyser2 = new audio.SpectrumAnalyser(document.getElementById("canvas_after"));
         
-        // Create the audio graph: (source ->) analyser 1 -> reducer -> gain -> analyser 2 -> meter -> output
-        analyser1.node.connect(reducer.input);
-        reducer.output.connect(gain);
-        gain.connect(analyser2.node);
+        // Create the audio graph: (source ->) analyser 1 -> gain -> reducer -> analyser 2 -> meter -> output
+        analyser1.node.connect(gain);
+        gain.connect(reducer.input);
+        reducer.output.connect(analyser2.node);
         analyser2.node.connect(meter.node);
         meter.node.connect(audio.context.destination);
         
