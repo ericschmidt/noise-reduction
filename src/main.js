@@ -22,22 +22,13 @@
     var analyser1;
     var analyser2;
     
-    // The current average level
-    var level;
-    // Counter used in measuring the average level
-    var counter;
-    // The current average deviation
-    var deviation;
-    
     // Stores whether the audio is playing or not
     var playing = false;
     
     // Play the audio
     function play() {
-        // Reset measurement variables & set playing to true
-        counter = 0;
-        level = 0;
-        deviation = 0;
+        // Reset the meter & set playing to true
+        meter.reset();
         playing = true;
         
         // Create source node, connect it to the audio graph, and start it
@@ -50,23 +41,16 @@
     
     // Measures & displays the level of the audio as well as the average level & deviation
     function getLevel() {
-        // The current level
-        var _level = meter.getLevel();
-        // Calculate the average level
-        level = (level*counter+_level)/(counter+1);
-        // The current deviation
-        var _deviation = Math.abs(_level-level);
-        // Calculate the average deviation
-        deviation = (deviation*counter+_deviation)/(counter+1);
-        counter++;
+        // Get the data from the meter
+        var measures = meter.measure();
         // Display the values
-        document.getElementById("level").innerHTML = _level;
-        document.getElementById("avglevel").innerHTML = level;
-        document.getElementById("deviation").innerHTML = _deviation;
-        document.getElementById("avgdev").innerHTML = deviation;
-        document.getElementById("devperlev").innerHTML = deviation/level;
+        document.getElementById("level").innerHTML = measures.level;
+        document.getElementById("avglevel").innerHTML = measures.averageLevel;
+        document.getElementById("deviation").innerHTML = measures.deviation;
+        document.getElementById("avgdev").innerHTML = measures.averageDeviation;
+        document.getElementById("devperlev").innerHTML = measures.averageDeviation/measures.averageLevel;
         // Intelligently set the threshold of the noise gate
-        reducer.gate.threshold = level-1.5*deviation;
+        reducer.gate.threshold = measures.averageLevel-1.2*measures.averageDeviation;
         if(playing) requestAnimationFrame(getLevel);
     }
     
@@ -95,11 +79,6 @@
     // Changes the gain when the slider is moved
     function onGainChanged(e) {
         gain.gain.value = parseFloat(e.target.value)/10;
-    }
-    
-    // Changes the reducer's noise threshold when the slider is moved
-    function onThresholdChanged(e) {
-        reducer.gate.threshold = parseFloat(e.target.value)/10;
     }
     
     // Toggles the use of the reducer
@@ -132,7 +111,6 @@
         document.getElementById("btn_play").addEventListener("click", play);
         document.getElementById("btn_stop").addEventListener("click", stop);
         document.getElementById("inp_gain").addEventListener("change", onGainChanged);
-        document.getElementById("inp_threshold").addEventListener("change", onThresholdChanged);
         document.getElementById("inp_useReducer").addEventListener("change", onReducerToggled);
     }
     

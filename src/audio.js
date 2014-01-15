@@ -85,19 +85,38 @@
         var _this = this;
         // Create an analyser as the input
         _this.node = audio.context.createAnalyser();
-        _this.node.fftSize = 512;
+        _this.node.fftSize = 2048;
         
-        // Measures the current loudness
-        _this.getLevel = function() {
+        // Measurement variables to store the average level & deviation
+        var _averageLevel = 0;
+        var _averageDeviation = 0;
+        var _counter = 0;
+        
+        // Measures and returns the current loudness, the average loudness, the current deviation,
+        // and the average deviation
+        _this.measure = function() {
             // Read the frequency domain data into an array
             var freqData = new Uint8Array(_this.node.frequencyBinCount);
             _this.node.getByteFrequencyData(freqData);
-            // Return the average level of the signal over all frequencies
+            // Calculate the average level of the signal over all frequencies
             var total = 0;
             for(var i=0; i<freqData.length; i++) {
                 total += parseFloat(freqData[i]);
             }
-            return total/freqData.length;
+            var level = total/freqData.length;
+            // Find the time-average of the level and deviation
+            _averageLevel = (_averageLevel*_counter + level)/(_counter+1);
+            var deviation = Math.abs(level - _averageLevel);
+            _averageDeviation = (_averageDeviation*_counter + deviation)/(_counter+1);
+            _counter++;
+            return {level: level, averageLevel: _averageLevel, deviation: deviation, averageDeviation: _averageDeviation};
+        };
+        
+        // Resets the averages
+        _this.reset = function() {
+            _averageLevel = 0;
+            _averageDeviation = 0;
+            _counter = 0;
         };
     };
     
@@ -119,7 +138,7 @@
         
         // Controls the gain
         var _controlGain = function() {
-            var level = _meter.getLevel();
+            var level = _meter.measure().level;
             if(level < _this.threshold) {
                 _this.output.gain.value = 0.2;
             } else {
@@ -140,16 +159,16 @@
         // Create a noise gate to process the sound first
         _this.gate = new audio.NoiseGate(threshold, target);
         // Create and configure the parametric EQ
-        var _eq = new audio.ParametricEQ();
-        _eq.setBandFrequencies([200,200,191,677,1014,2858,6240,10000]);
-        _eq.setBandTypes(["highpass","peaking","notch","notch","notch","notch","lowpass","peaking"]);
+        _this.eq = new audio.ParametricEQ();
+        _this.eq.setBandFrequencies([200,200,191,677,1014,2858,6240,10000]);
+        _this.eq.setBandTypes(["highpass","peaking","notch","notch","notch","notch","lowpass","peaking"]);
         // Create a post-gain node
         var _gain = audio.context.createGain();
         // Connect the components: EQ -> noise gate -> gain
-        _eq.output.connect(_this.gate.input);
+        _this.eq.output.connect(_this.gate.input);
         _this.gate.output.connect(_gain);
         // Set the input of this module to be the EQ input
-        _this.input = _eq.input;
+        _this.input = _this.eq.input;
         // Set the output of this module to be the gain
         _this.output = _gain;
         
@@ -194,7 +213,7 @@
             ctx.fillStyle = "#007700";
             for(var i=0; i<200; i++) {
                 // Calculate the ith frequency on an exponential scale
-                var freq = Math.pow(4, i/20);
+                var freq = Math.pow(4, i/27);
                 // Find which frequency bin it is stored in
                 var bin = Math.round(freq/audio.context.sampleRate*_this.node.fftSize);
                 // Get the level and scale it to fit in the canvas
