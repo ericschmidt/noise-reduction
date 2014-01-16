@@ -182,7 +182,7 @@
                 _bypassed = true;
             } else if(!isBypassed && _bypassed) {
                 _this.input.disconnect(0);
-                _this.input.connect(_eq.bands[0]);
+                _this.input.connect(_this.eq.bands[0]);
                 _bypassed = false;
             }
         };
