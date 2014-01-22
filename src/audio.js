@@ -78,6 +78,14 @@
                 _this.bands[i].Q.value = Qs[i];
             }
         };
+        
+        // Sets all gain values at once; gains is a list
+        _this.setBandGains = function(gains) {
+            var min = Math.min(_this.bands.length, gains.length);
+            for(var i=0; i<min; i++) {
+                _this.bands[i].gain.value = gains[i];
+            }
+        };
     };
     
     // A meter to measure the overall loudness of the audio
@@ -160,7 +168,7 @@
         _this.gate = new audio.NoiseGate(threshold, target);
         // Create and configure the parametric EQ
         _this.eq = new audio.ParametricEQ();
-        _this.eq.setBandFrequencies([200,200,191,677,1014,2858,6240,10000]);
+        _this.eq.setBandFrequencies([164,200,191,677,1014,2858,6240,10000]);
         _this.eq.setBandTypes(["highpass","peaking","notch","notch","notch","notch","lowpass","peaking"]);
         // Create a post-gain node
         var _gain = audio.context.createGain();

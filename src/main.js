@@ -25,6 +25,44 @@
     // Stores whether the audio is playing or not
     var playing = false;
     
+    // Noise reducer presets
+    var presets = [
+        {
+            name: "BG Noise/Rumble 1",
+            freqs: [164,200,191,677,1014,2858,6240],
+            types: ["highpass","peaking","notch","notch","notch","notch","lowpass"],
+        },
+        {
+            name: "BG Noise/Rumble 2",
+            freqs: [144,986],
+            types: ["highpass","notch"],
+            Qs: [1,0.5]
+        },
+        {
+            name: "Low Volume 1",
+            freqs: [194,524,2675,4058],
+            types: ["highpass","peaking","notch","peaking"],
+            Qs: [1,1,0.5,1],
+            gains: [1,16,1,20]
+        },
+        {
+            name: "Low Volume 2",
+            freqs: [194,524,1600,6000],
+            types: ["highpass","peaking","notch","peaking"],
+            Qs: [1,2,1,2],
+            gains: [1,16,1,20]
+        }
+    ];
+    
+    // Sets the EQ preset
+    function setEQPreset(num) {
+        var preset = presets[num];
+        if(preset.freqs) reducer.eq.setBandFrequencies(preset.freqs);
+        if(preset.types) reducer.eq.setBandTypes(preset.types);
+        if(preset.Qs) reducer.eq.setQValues(preset.Qs);
+        if(preset.gains) reducer.eq.setBandGains(preset.gains);
+    }
+    
     // Play the audio
     function play() {
         // Reset the meter & set playing to true
@@ -50,7 +88,7 @@
         document.getElementById("avgdev").innerHTML = measures.averageDeviation;
         document.getElementById("devperlev").innerHTML = measures.averageDeviation/measures.averageLevel;
         // Intelligently set the threshold of the noise gate
-        reducer.gate.threshold = measures.averageLevel-1.2*measures.averageDeviation;
+        reducer.gate.threshold = measures.averageLevel-2*measures.averageDeviation;
         if(playing) requestAnimationFrame(getLevel);
     }
     
@@ -87,6 +125,13 @@
         reducer.bypass(!useReducer);
     }
     
+    // Changes the noise reducer EQ preset
+    function onPresetChanged(e) {
+        var presetNum = parseInt(e.target.value);
+        setEQPreset(presetNum);
+        document.getElementById("preset").innerHTML = presets[presetNum].name;
+    }
+    
     // Initialization function
     function init() {
         // Initialize the audio library
@@ -112,6 +157,7 @@
         document.getElementById("btn_stop").addEventListener("click", stop);
         document.getElementById("inp_gain").addEventListener("change", onGainChanged);
         document.getElementById("inp_useReducer").addEventListener("change", onReducerToggled);
+        document.getElementById("inp_preset").addEventListener("change", onPresetChanged);
     }
     
     // Run init when the page is loaded
