@@ -155,7 +155,20 @@
         };
         
         // Set up the interval at which to control the gain
-        var _int = setInterval(_controlGain, 10);
+        var _interval = setInterval(_controlGain, 10);
+        // An internal boolean to store whether the module is bypassed or not
+        var _bypassed = false;
+        // Determines whether the module is active or not - argument is a boolean
+        _this.bypass = function (doBypass) {
+            if (doBypass && !_bypassed) {
+                clearInterval(_interval);
+                _bypassed = true;
+            } else if (!doBypass && _bypassed) {
+                _interval = setInterval(_controlGain, 10);
+                _meter.reset();
+                _bypassed = false;
+            }
+        };
     };
     
     // A noise reduction module (combines a parametric EQ and a noise gate)
